@@ -11,7 +11,7 @@ services:
     depends_on:
       - user_service
 
-   # User Service (pakai SQLite)
+  # User Service (pakai SQLite)
   user_service:
     build: ./user_service
     ports:
@@ -19,13 +19,34 @@ services:
     volumes:
       - ./user_service:/app
 
-  # Vendor Service (pakai SQLite)
+  # Vendor Database (PostgreSQL)
+  vendor_db:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: vendor_db
+    volumes:
+      - vendor_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Vendor Service (pakai PostgreSQL)
   vendor_service:
     build: ./vendor_service
     ports:
-      - "8002:8002"
+      - "8005:8005"
     volumes:
       - ./vendor_service:/app
+    depends_on:
+      vendor_db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres123@vendor_db:5432/vendor_db
 
   # Product Service (pakai SQLite)
   product_service:
@@ -47,14 +68,9 @@ services:
   payment_service:
     build: ./payment_service
     ports:
-      - "8005:8005"
+      - "8006:8006"
     volumes:
       - ./payment_service:/app
 
-
-# volumes:
-#   user_data:
-#   vendor_data:
-#   product_data:
-#   order_data:
-#   payment_data:
+volumes:
+  vendor_data:

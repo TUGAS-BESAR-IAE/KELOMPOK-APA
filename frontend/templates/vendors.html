@@ -82,11 +82,12 @@
     </div>
   </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  const API_URL = "http://localhost:8002/graphql";
+  const API_URL = "https://transactionsservice-production.up.railway.app/";
   let currentVendorId = null;
 
   async function fetchGraphQL(query, variables = {}) {
@@ -103,11 +104,11 @@
     const data = await fetchGraphQL(query);
     const vendorList = document.getElementById("vendorList");
     vendorList.innerHTML = "";
-    
+
     if (data.data.vendors.length > 0) {
       const vendor = data.data.vendors[0];
       currentVendorId = vendor.id;
-      
+
       vendorList.innerHTML = `
         <div class="d-flex align-items-center gap-4">
           <div class="rounded-circle bg-primary bg-opacity-10 p-4">
@@ -128,18 +129,23 @@
 
   async function loadTransactions() {
     if (!currentVendorId) return;
-    
-    const query = `query($vendorId: ID!) {
+
+    const query = `query($vendorId: Int!) {
       vendorTransactions(vendor_id: $vendorId) {
-        livestock_type total status transaction_date
+        id
+        livestock_type
+        total
+        status
+        transaction_date
       }
     }`;
     const data = await fetchGraphQL(query, { vendorId: currentVendorId });
     const transactionList = document.getElementById("transactionList");
     transactionList.innerHTML = "";
-    
+
     data.data.vendorTransactions.forEach(tx => {
-      const statusClass = tx.status === 'sudah' ? 'success' : 'warning';
+      const status = tx.status || 'belum';
+      const statusClass = status === 'sudah' ? 'success' : 'warning';
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td class="px-4 py-3">
@@ -151,7 +157,7 @@
         <td class="px-4 py-3 fw-medium">${tx.total} units</td>
         <td class="px-4 py-3">
           <span class="badge bg-${statusClass} bg-opacity-10 text-${statusClass} px-3 py-2 rounded-pill">
-            ${tx.status}
+            ${status}
           </span>
         </td>
         <td class="px-4 py-3 text-secondary">
@@ -172,25 +178,31 @@
     e.preventDefault();
     const livestock_type = document.getElementById("livestockType").value;
     const total = parseInt(document.getElementById("total").value);
-    
-    const mutation = `mutation($vendor_id: ID!, $livestock_type: String!, $total: Int!) {
+
+    const mutation = `mutation($vendor_id: Int!, $livestock_type: String!, $total: Int!) {
       addVendorTransaction(vendor_id: $vendor_id, livestock_type: $livestock_type, total: $total) {
         id
       }
     }`;
-    
-    await fetchGraphQL(mutation, { 
-      vendor_id: currentVendorId, 
-      livestock_type, 
-      total 
+
+    const result = await fetchGraphQL(mutation, {
+      vendor_id: currentVendorId,
+      livestock_type,
+      total
     });
-    
-    // Reset form and close modal
+
+    if (!result.data || !result.data.addVendorTransaction) {
+      alert("Gagal menyimpan transaksi!");
+      return;
+    }
+
+    // Reset form dan tutup modal
     e.target.reset();
     bootstrap.Modal.getInstance(document.getElementById('addTransactionModal')).hide();
     loadTransactions();
   });
 
+  // Load awal
   loadVendors();
-</script>
+  </script>
 {% endblock %}
