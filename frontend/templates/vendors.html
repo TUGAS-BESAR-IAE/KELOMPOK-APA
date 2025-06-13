@@ -4,49 +4,8 @@
 
 {% block content %}
 <div class="container-fluid px-4 py-4">
-  <div class="row g-4">
-    <!-- Vendor Info Card -->
-    <div class="col-12">
-      <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-body p-4">
-          <div id="vendorList" class="d-flex align-items-center">
-            <!-- Vendor info will be inserted here -->
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Vendor Transactions -->
-    <div class="col-12">
-      <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header border-0 bg-white p-4">
-          <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold text-primary">Transaction History</h5>
-            <button type="button" class="btn btn-primary px-4 rounded-3 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addTransactionModal">
-              <i class="fas fa-plus"></i>
-              <span>New Transaction</span>
-            </button>
-          </div>
-        </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="bg-light">
-                <tr>
-                  <th class="px-4 py-3 text-secondary">Type</th>
-                  <th class="px-4 py-3 text-secondary">Total</th>
-                  <th class="px-4 py-3 text-secondary">Status</th>
-                  <th class="px-4 py-3 text-secondary">Date</th>
-                </tr>
-              </thead>
-              <tbody id="transactionList">
-                <!-- Transaction list will be inserted here -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div id="vendorContainer" class="row g-4">
+    <!-- Semua vendor akan ditampilkan di sini -->
   </div>
 </div>
 
@@ -60,6 +19,7 @@
       </div>
       <form id="addTransactionForm">
         <div class="modal-body p-4">
+          <input type="hidden" id="vendorIdInput">
           <div class="mb-4">
             <label class="form-label text-secondary">Livestock Type</label>
             <select id="livestockType" class="form-select form-select-lg rounded-3" required>
@@ -82,13 +42,11 @@
     </div>
   </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
   const API_URL = "https://transactionsservice-production.up.railway.app/";
-  let currentVendorId = null;
 
   async function fetchGraphQL(query, variables = {}) {
     const response = await fetch(API_URL, {
@@ -99,110 +57,131 @@
     return response.json();
   }
 
-  async function loadVendors() {
-    const query = `query { vendors { id name contact_info } }`;
-    const data = await fetchGraphQL(query);
-    const vendorList = document.getElementById("vendorList");
-    vendorList.innerHTML = "";
+  async function loadAllVendors() {
+    const vendorQuery = `query { vendors { id name contact_info } }`;
+    const vendorData = await fetchGraphQL(vendorQuery);
+    const vendorContainer = document.getElementById("vendorContainer");
+    vendorContainer.innerHTML = "";
 
-    if (data.data.vendors.length > 0) {
-      const vendor = data.data.vendors[0];
-      currentVendorId = vendor.id;
+    for (const vendor of vendorData.data.vendors) {
+      const txQuery = `
+        query($vendorId: Int!) {
+          vendorTransactions(vendor_id: $vendorId) {
+            id
+            livestock_type
+            total
+            status
+            transaction_date
+          }
+        }
+      `;
+      const txData = await fetchGraphQL(txQuery, { vendorId: vendor.id });
 
-      vendorList.innerHTML = `
-        <div class="d-flex align-items-center gap-4">
-          <div class="rounded-circle bg-primary bg-opacity-10 p-4">
-            <i class="fas fa-user-tie text-primary fa-2x"></i>
-          </div>
-          <div>
-            <h4 class="mb-2 fw-bold">${vendor.name}</h4>
-            <p class="text-secondary mb-0 d-flex align-items-center gap-2">
-              <i class="fas fa-phone"></i>
-              <span>${vendor.contact_info || 'No contact info'}</span>
-            </p>
+      const txRows = txData.data.vendorTransactions.map(tx => {
+        const status = tx.status || 'belum';
+        const statusClass = status === 'sudah' ? 'success' : 'warning';
+        return `
+          <tr>
+            <td class="px-4 py-3">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-cube text-primary"></i>
+                <span class="text-capitalize fw-medium">${tx.livestock_type}</span>
+              </div>
+            </td>
+            <td class="px-4 py-3 fw-medium">${tx.total} units</td>
+            <td class="px-4 py-3">
+              <span class="badge bg-${statusClass} bg-opacity-10 text-${statusClass} px-3 py-2 rounded-pill">
+                ${status}
+              </span>
+            </td>
+            <td class="px-4 py-3 text-secondary">
+              ${new Date(tx.transaction_date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      const cardHTML = `
+        <div class="col-12">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+            <div class="card-body p-4">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                  <h4 class="fw-bold">${vendor.name}</h4>
+                  <p class="text-secondary mb-0">
+                    <i class="fas fa-phone"></i> ${vendor.contact_info || "No contact info"}
+                  </p>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="openTransactionModal(${vendor.id})">
+                  <i class="fas fa-plus"></i> Add Transaction
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="bg-light">
+                    <tr>
+                      <th class="px-4 py-3 text-secondary">Type</th>
+                      <th class="px-4 py-3 text-secondary">Total</th>
+                      <th class="px-4 py-3 text-secondary">Status</th>
+                      <th class="px-4 py-3 text-secondary">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${txRows || `<tr><td colspan="4" class="text-center text-muted py-3">No transactions</td></tr>`}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       `;
-      loadTransactions();
+
+      vendorContainer.insertAdjacentHTML("beforeend", cardHTML);
     }
   }
 
-  async function loadTransactions() {
-    if (!currentVendorId) return;
-
-    const query = `query($vendorId: Int!) {
-      vendorTransactions(vendor_id: $vendorId) {
-        id
-        livestock_type
-        total
-        status
-        transaction_date
-      }
-    }`;
-    const data = await fetchGraphQL(query, { vendorId: currentVendorId });
-    const transactionList = document.getElementById("transactionList");
-    transactionList.innerHTML = "";
-
-    data.data.vendorTransactions.forEach(tx => {
-      const status = tx.status || 'belum';
-      const statusClass = status === 'sudah' ? 'success' : 'warning';
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="px-4 py-3">
-          <div class="d-flex align-items-center gap-2">
-            <i class="fas fa-cube text-primary"></i>
-            <span class="text-capitalize fw-medium">${tx.livestock_type}</span>
-          </div>
-        </td>
-        <td class="px-4 py-3 fw-medium">${tx.total} units</td>
-        <td class="px-4 py-3">
-          <span class="badge bg-${statusClass} bg-opacity-10 text-${statusClass} px-3 py-2 rounded-pill">
-            ${status}
-          </span>
-        </td>
-        <td class="px-4 py-3 text-secondary">
-          ${new Date(tx.transaction_date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
-        </td>
-      `;
-      transactionList.appendChild(tr);
-    });
+  function openTransactionModal(vendorId) {
+    document.getElementById("vendorIdInput").value = vendorId;
+    const modal = new bootstrap.Modal(document.getElementById("addTransactionModal"));
+    modal.show();
   }
 
-  document.getElementById("addTransactionForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    const livestock_type = document.getElementById("livestockType").value;
-    const total = parseInt(document.getElementById("total").value);
-
-    const mutation = `mutation($vendor_id: Int!, $livestock_type: String!, $total: Int!) {
-      addVendorTransaction(vendor_id: $vendor_id, livestock_type: $livestock_type, total: $total) {
-        id
-      }
-    }`;
-
-    const result = await fetchGraphQL(mutation, {
-      vendor_id: currentVendorId,
-      livestock_type,
-      total
-    });
-
-    if (!result.data || !result.data.addVendorTransaction) {
-      alert("Gagal menyimpan transaksi!");
-      return;
+    document.getElementById("addTransactionForm").addEventListener("submit", async e => {
+      e.preventDefault();
+      const vendor_id = parseInt(document.getElementById("vendorIdInput").value);
+      const livestock_type = document.getElementById("livestockType").value;
+      const total = parseInt(document.getElementById("total").value);
+  
+      const mutation = `
+  mutation($vendor_id: Int!, $livestock_type: String!, $total: Int!) {
+    addVendorTransaction(
+      vendor_id: $vendor_id,
+      livestock_type: $livestock_type,
+      total: $total
+    ) {
+      id
     }
+  }
+`;
 
-    // Reset form dan tutup modal
-    e.target.reset();
-    bootstrap.Modal.getInstance(document.getElementById('addTransactionModal')).hide();
-    loadTransactions();
-  });
-
-  // Load awal
-  loadVendors();
+  
+      try {
+        await fetchGraphQL(mutation, { vendor_id, livestock_type, total });
+        const modal = bootstrap.Modal.getInstance(document.getElementById("addTransactionModal"));
+        modal.hide();
+        loadAllVendors();
+      } catch (error) {
+        alert("Failed to add transaction.");
+      }
+    });
+  
+    // Load vendors on page load
+    document.addEventListener("DOMContentLoaded", loadAllVendors);
   </script>
-{% endblock %}
+  {% endblock %}
