@@ -26,8 +26,8 @@ app.mount("/", graphql_app)
 
 @app.on_event("startup")
 async def startup_event():
-    init_db()
+    await init_db()  # Tambahkan await di sini
     print("Vendor DB initialized")
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8002, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8005, reload=True)

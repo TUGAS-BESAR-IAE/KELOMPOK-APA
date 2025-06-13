@@ -1,43 +1,52 @@
-import sqlite3
+import os
+from databases import Database
 
-DATABASE_NAME = 'vendor_service.db'
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:dgpyzXndVtMpGAYlHuwBckOxnvwntmQy@postgres.railway.internal:5432/railway")
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE_NAME, check_same_thread=False, timeout=10)
-    conn.row_factory = sqlite3.Row
-    return conn
+async def get_db_connection():
+    database = Database(DATABASE_URL)
+    await database.connect()
+    return database
 
-
-def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # Create vendors table
-    cursor.execute('''
+async def init_db():
+    database = await get_db_connection()
+    
+    # Create vendors table first (uncomment ini)
+    await database.execute("""
         CREATE TABLE IF NOT EXISTS vendors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
             contact_info TEXT
         )
-    ''')
-
-    # Create vendor_transactions table
-    cursor.execute('''
+    """)
+    
+    # Create vendor_transactions table (hapus comma trailing)
+    await database.execute("""
         CREATE TABLE IF NOT EXISTS vendor_transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             vendor_id INTEGER NOT NULL,
-            livestock_type TEXT CHECK(livestock_type IN ('sapi', 'ayam', 'kambing', 'domba')),
+            livestock_type VARCHAR(50) CHECK(livestock_type IN ('sapi', 'ayam', 'kambing', 'domba')),
             total INTEGER NOT NULL,
-            status TEXT CHECK(status IN ('belum', 'sudah')) DEFAULT 'belum',
-            transaction_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            status VARCHAR(20) CHECK(status IN ('belum', 'sudah')) DEFAULT 'belum',
+            transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (vendor_id) REFERENCES vendors(id)
         )
-    ''')
-
-    conn.commit()
-    conn.close()
-    print("Tables 'vendors' and 'vendor_transactions' created or already exist.")
+    """)
+    
+    # Insert sample vendors if table is empty
+    vendor_count = await database.fetch_val("SELECT COUNT(*) FROM vendors")
+    if vendor_count == 0:
+        await database.execute("""
+            INSERT INTO vendors (name, contact_info) VALUES 
+            ('PT Sapi Jaya', 'Jl. Raya No. 123, Telp: 081234567890'),
+            ('CV Ternak Makmur', 'Jl. Merdeka No. 456, Telp: 081987654321'),
+            ('UD Kambing Sejahtera', 'Jl. Pahlawan No. 789, Telp: 081122334455')
+        """)
+        print("Sample vendors berhasil ditambahkan.")
+    
+    print("Tabel 'vendors' dan 'vendor_transactions' berhasil dibuat.")
+    await database.disconnect()
 
 if __name__ == "__main__":
-    init_db()
-    print("Vendor database initialized.")
+    import asyncio
+    asyncio.run(init_db())

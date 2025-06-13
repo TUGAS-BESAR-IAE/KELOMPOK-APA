@@ -1,24 +1,31 @@
 type Query {
   ping: String!
   vendors: [Vendor!]!
-  vendorTransactions(vendor_id: ID!): [VendorTransaction!]!
+  vendorTransactions(vendor_id: Int!): [VendorTransaction!]!
   vendorTransactionsAll: [VendorTransaction!]!
 }
 
 type Mutation {
-  addVendorTransaction(vendor_id: ID!, livestock_type: String!, total: Int!): VendorTransaction!
-  updateTransactionStatus(transaction_id: ID!, status: String!): VendorTransaction!
+  addVendorTransaction(
+    vendor_id: Int!
+    livestock_type: String!
+    total: Int!
+  ): VendorTransaction
+  updateTransactionStatus(
+    transaction_id: Int!
+    status: String!
+  ): VendorTransaction
 }
 
 type Vendor {
-  id: ID!
+  id: Int!
   name: String!
   contact_info: String
 }
 
 type VendorTransaction {
-  id: ID!
-  vendor_id: ID!
+  id: Int!
+  vendor_id: Int!
   vendor_name: String
   livestock_type: String!
   total: Int!
