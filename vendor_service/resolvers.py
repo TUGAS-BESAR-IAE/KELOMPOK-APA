@@ -164,7 +164,7 @@ async def resolve_update_transaction_status(_, info, transaction_id, status):
         try:
             print(">> Mengirim request ke product_service...")
             response = requests.post(
-                "http://product_service:8003/graphql",
+                "https://sapiservice-production.up.railway.app/",
                 json={"query": mutation_query, "variables": variables},
                 headers={"Content-Type": "application/json"},
                 timeout=5

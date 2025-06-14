@@ -1,4 +1,4 @@
-ariadne==0.18.0
+ariadne==0.20.0
 databases[postgresql]==0.5.5
 uvicorn==0.18.3
 psycopg2-binary==2.9.10

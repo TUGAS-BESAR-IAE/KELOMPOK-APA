@@ -1,0 +1,2 @@
+from resolvers import sync_sapi_to_raw_material
+sync_sapi_to_raw_material()
