@@ -7,3 +7,4 @@ SQLAlchemy==1.4.54
 greenlet==3.2.2
 fastapi==0.110.0
 jinja2
+requests
