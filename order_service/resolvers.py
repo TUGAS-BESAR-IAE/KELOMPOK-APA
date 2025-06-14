@@ -25,6 +25,17 @@ def resolve_order_items(_, info, order_id):
     conn.close()
     return items
 
+# @query.field("payments")
+# def resolve_payments(_, info):
+#     conn = get_db_connection()
+#     c = conn.cursor()
+#     c.execute("SELECT * FROM payments")
+#     rows = c.fetchall()
+#     conn.close()
+#     return [dict(row) for row in rows]
+
+
+
 @mutation.field("createOrder")
 def resolve_create_order(_, info, user_id, items):
     conn = get_db_connection()

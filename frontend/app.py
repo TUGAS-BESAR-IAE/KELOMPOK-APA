@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+# import requests
+# from fastapi import APIRouter
 
 app = FastAPI()
 
@@ -64,6 +66,52 @@ async def products_page(request: Request):
     if request.cookies.get("is_logged_in") != "true":
         return RedirectResponse(url="/login.html")
     return templates.TemplateResponse("products.html", {"request": request})
+
+@app.get("/orders")
+@app.get("/orders.html")
+async def orders_page(request: Request):
+    if request.cookies.get("is_logged_in") != "true":
+        return RedirectResponse(url="/login.html")
+    return templates.TemplateResponse("orders.html", {"request": request})
+
+# @app.get("/api/users")
+# async def get_users():
+#     query = {
+#         "query": """
+#             query {
+#                 users {
+#                     id
+#                     name
+#                 }
+#             }
+#         """
+#     }
+#     try:
+#         res = requests.post("http://user_service:8001/graphql", json=query)
+#         return res.json()["data"]["users"]
+#     except Exception as e:
+#         print("❌ Gagal fetch users:", e)
+#         return []
+
+# @app.get("/api/products")
+# async def get_products():
+#     query = {
+#         "query": """
+#             query {
+#                 products {
+#                     id
+#                     name
+#                     quantity
+#                 }
+#             }
+#         """
+#     }
+#     try:
+#         res = requests.post("http://product_service:8003/graphql", json=query)
+#         return res.json()["data"]["products"]
+#     except Exception as e:
+#         print("❌ Gagal fetch products:", e)
+#         return []
 
 
 

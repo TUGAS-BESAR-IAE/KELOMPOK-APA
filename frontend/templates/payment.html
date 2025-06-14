@@ -97,7 +97,7 @@ async function handleAddPayment(event) {
     }
   `;
 
-  await fetch("http://localhost:8004/graphql", {
+  await fetch("http://localhost:8006/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query: mutation })
@@ -112,7 +112,7 @@ async function loadPayments() {
     order_id payment_method amount payment_status transaction_id payment_date
   }}`;
 
-  const res = await fetch("http://localhost:8004/graphql", {
+  const res = await fetch("http://localhost:8006/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query })
