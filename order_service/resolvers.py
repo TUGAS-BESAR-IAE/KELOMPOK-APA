@@ -2,6 +2,7 @@
 from ariadne import QueryType, MutationType
 from database import get_db_connection
 from datetime import datetime
+import requests
 
 query = QueryType()
 mutation = MutationType()
@@ -28,9 +29,61 @@ def resolve_order_items(_, info, order_id):
 def resolve_create_order(_, info, user_id, items):
     conn = get_db_connection()
     c = conn.cursor()
-    total_amount = sum(item["quantity"] * item["price"] for item in items)
-    order_date = datetime.now().isoformat()
+    total_amount = 0
 
+    # Periksa stok dan kurangi stok di product_service
+    for item in items:
+        product_id = item["product_id"]
+        quantity = item["quantity"]
+        price = item["price"]
+
+        # Step 1: Cek stok dari product_service
+        query = """
+        query($id: Int!) {
+            productById(id: $id) {
+                id
+                name
+                quantity
+            }
+        }
+        """
+        response = requests.post(
+            "http://product_service:8003/graphql",
+            json={"query": query, "variables": {"id": product_id}},
+            headers={"Content-Type": "application/json"},
+            timeout=5
+        )
+        data = response.json()
+        product = data.get("data", {}).get("productById")
+
+        if not product:
+            raise Exception(f"Product dengan ID {product_id} tidak ditemukan")
+
+        if product["quantity"] < quantity:
+            raise Exception(f"Stok produk '{product['name']}' tidak mencukupi")
+
+        # Step 2: Kurangi stok di product_service
+        mutation_query = """
+        mutation($id: Int!, $amount: Int!) {
+            decreaseProductStock(id: $id, amount: $amount) {
+                id
+            }
+        }
+        """
+        decrease_response = requests.post(
+            "http://product_service:8003/graphql",
+            json={"query": mutation_query, "variables": {"id": product_id, "amount": quantity}},
+            headers={"Content-Type": "application/json"},
+            timeout=5
+        )
+        if "errors" in decrease_response.json():
+            raise Exception(f"Gagal mengurangi stok produk ID {product_id}")
+
+        # Hitung total
+        total_amount += quantity * price
+
+    # Step 3: Simpan order
+    order_date = datetime.now().isoformat()
     c.execute(
         "INSERT INTO orders (user_id, order_date, total_amount, status) VALUES (?, ?, ?, ?)",
         (user_id, order_date, total_amount, "pending")

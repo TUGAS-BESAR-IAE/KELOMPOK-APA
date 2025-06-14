@@ -1,0 +1,234 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Orders Management</h1>
+
+    <!-- Form Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Add New Order</h6>
+        </div>
+        <div class="card-body">
+            <form id="orderForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="customer">Customer</label>
+                        <select class="form-control" id="customer" name="customer" required>
+                            <option value="">Select Customer</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="product">Product</label>
+                        <select class="form-control" id="product" name="product" required>
+                            <option value="">Select Product</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="quantity">Quantity</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" required min="1">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="orderDate">Order Date</label>
+                        <input type="date" class="form-control" id="orderDate" name="orderDate" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Order History</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="ordersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID Order</th>
+                            <th>Customer</th>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Order Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editOrderModal" tabindex="-1" role="dialog" aria-labelledby="editOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editOrderModalLabel">Edit Order</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editOrderForm">
+                    <input type="hidden" id="editOrderId">
+                    <div class="form-group">
+                        <label for="editCustomer">Customer</label>
+                        <select class="form-control" id="editCustomer" required>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editProduct">Product</label>
+                        <select class="form-control" id="editProduct" required>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editQuantity">Quantity</label>
+                        <input type="number" class="form-control" id="editQuantity" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="editOrderDate">Order Date</label>
+                        <input type="date" class="form-control" id="editOrderDate" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveEditOrder">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    var table = $('#ordersTable').DataTable({
+        responsive: true
+    });
+
+    // Load customers and products for dropdowns
+    function loadDropdowns() {
+        // Load customers
+        $.get('/api/users', function(users) {
+            const customerSelect = $('#customer, #editCustomer');
+            customerSelect.empty().append('<option value="">Select Customer</option>');
+            users.forEach(user => {
+                customerSelect.append(`<option value="${user.id}">${user.name}</option>`);
+            });
+        });
+
+        // Load products
+        $.get('/api/products', function(products) {
+            const productSelect = $('#product, #editProduct');
+            productSelect.empty().append('<option value="">Select Product</option>');
+            products.forEach(product => {
+                productSelect.append(`<option value="${product.id}">${product.name}</option>`);
+            });
+        });
+    }
+
+    // Load orders
+    function loadOrders() {
+        $.get('/api/orders', function(orders) {
+            table.clear();
+            orders.forEach(order => {
+                table.row.add([
+                    order.id,
+                    order.customer_name,
+                    order.product_name,
+                    order.quantity,
+                    order.order_date,
+                    `<button class="btn btn-sm btn-primary edit-order" data-id="${order.id}">Edit</button>
+                     <button class="btn btn-sm btn-danger delete-order" data-id="${order.id}">Delete</button>`
+                ]);
+            });
+            table.draw();
+        });
+    }
+
+    // Form submission
+    $('#orderForm').on('submit', function(e) {
+        e.preventDefault();
+        const orderData = {
+            customer_id: $('#customer').val(),
+            product_id: $('#product').val(),
+            quantity: $('#quantity').val(),
+            order_date: $('#orderDate').val()
+        };
+
+        $.post('/api/orders', orderData, function() {
+            $('#orderForm')[0].reset();
+            loadOrders();
+        });
+    });
+
+    // Edit order
+    $(document).on('click', '.edit-order', function() {
+        const orderId = $(this).data('id');
+        $.get(`/api/orders/${orderId}`, function(order) {
+            $('#editOrderId').val(order.id);
+            $('#editCustomer').val(order.customer_id);
+            $('#editProduct').val(order.product_id);
+            $('#editQuantity').val(order.quantity);
+            $('#editOrderDate').val(order.order_date);
+            $('#editOrderModal').modal('show');
+        });
+    });
+
+    // Save edited order
+    $('#saveEditOrder').click(function() {
+        const orderId = $('#editOrderId').val();
+        const orderData = {
+            customer_id: $('#editCustomer').val(),
+            product_id: $('#editProduct').val(),
+            quantity: $('#editQuantity').val(),
+            order_date: $('#editOrderDate').val()
+        };
+
+        $.ajax({
+            url: `/api/orders/${orderId}`,
+            method: 'PUT',
+            data: orderData,
+            success: function() {
+                $('#editOrderModal').modal('hide');
+                loadOrders();
+            }
+        });
+    });
+
+    // Delete order
+    $(document).on('click', '.delete-order', function() {
+        if (confirm('Are you sure you want to delete this order?')) {
+            const orderId = $(this).data('id');
+            $.ajax({
+                url: `/api/orders/${orderId}`,
+                method: 'DELETE',
+                success: function() {
+                    loadOrders();
+                }
+            });
+        }
+    });
+
+    // Initial load
+    loadDropdowns();
+    loadOrders();
+});
+</script>
+{% endblock %} 

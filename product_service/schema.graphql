@@ -1,6 +1,7 @@
 type Query {
   rawMaterials: [RawMaterial!]!
   products: [Product!]!
+  productById(id: Int!): Product
 }
 
 type Mutation {
@@ -8,6 +9,7 @@ type Mutation {
   addProduct(raw_material_id: Int!, name: String!, unit: String, quantity: Int!): Product!
   decreaseRawMaterial(id: Int!, amount: Int!): RawMaterial!
   deleteRawMaterial(id: Int!): Boolean!
+  decreaseProductStock(id: Int!, amount: Int!): Product!
 }
 
 type RawMaterial {
