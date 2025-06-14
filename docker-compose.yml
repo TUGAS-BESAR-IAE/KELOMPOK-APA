@@ -55,6 +55,8 @@ services:
       - "8003:8003"
     volumes:
       - ./product_service:/app
+    dns:
+      -8.8.8.8
 
   # Order Service (pakai SQLite)
   order_service:

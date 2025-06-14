@@ -6,6 +6,8 @@ type Query {
 type Mutation {
   addRawMaterial(vendor_transaction_id: Int, livestock_type: String!, quantity: Int!): RawMaterial!
   addProduct(raw_material_id: Int!, name: String!, unit: String, quantity: Int!): Product!
+  decreaseRawMaterial(id: Int!, amount: Int!): RawMaterial!
+  deleteRawMaterial(id: Int!): Boolean!
 }
 
 type RawMaterial {

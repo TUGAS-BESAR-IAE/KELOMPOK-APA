@@ -81,7 +81,7 @@
 
 {% block extra_js %}
 <script>
-  const API_URL = "http://product_service:8003/graphql";
+  const API_URL = "http://localhost:8003/graphql"; // Update with your actual API URL
 
   async function fetchGraphQL(query, variables = {}) {
     const res = await fetch(API_URL, {
@@ -106,6 +106,16 @@
         <td>${m.livestock_type}</td>
         <td>${m.quantity}</td>
         <td>${m.received_at}</td>
+        <td>
+          <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-warning" onclick="decreaseStock(${m.id})" title="Decrease Stock">
+              <i class="fas fa-minus-circle"></i>
+            </button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteRaw(${m.id})" title="Delete">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+         </td>
       `;
       list.appendChild(tr);
 
@@ -115,6 +125,40 @@
       select.appendChild(opt);
     });
   }
+
+  async function decreaseStock(id) {
+  const amount = 1; // atau bisa dibuat input prompt
+  const mutation = `
+    mutation($id: Int!, $amount: Int!) {
+      decreaseRawMaterial(id: $id, amount: $amount) {
+        id
+      }
+    }
+  `;
+  const res = await fetchGraphQL(mutation, { id, amount });
+  if (res.errors) {
+    alert("Gagal kurangi stok: " + res.errors[0].message);
+  } else {
+    loadRawMaterials();
+  }
+}
+
+async function deleteRaw(id) {
+  if (!confirm("Yakin ingin menghapus raw material ini?")) return;
+
+  const mutation = `
+    mutation($id: Int!) {
+      deleteRawMaterial(id: $id)
+    }
+  `;
+  const res = await fetchGraphQL(mutation, { id });
+  if (res.errors) {
+    alert("Gagal menghapus: " + res.errors[0].message);
+  } else {
+    loadRawMaterials();
+  }
+}
+
 
   async function loadProducts() {
     const query = `
