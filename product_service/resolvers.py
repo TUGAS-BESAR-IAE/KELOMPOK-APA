@@ -108,6 +108,45 @@ def resolve_products(_, info):
     conn.close()
     return [dict(row) for row in rows]
 
+@query.field("productById")
+def resolve_product_by_id(_, info, id):
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT * FROM products WHERE id = ?", (id,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+@mutation.field("decreaseProductStock")
+def resolve_decrease_product_stock(_, info, id, amount):
+    conn = get_db_connection()
+    c = conn.cursor()
+
+    # Ambil stok sekarang
+    c.execute("SELECT quantity FROM products WHERE id = ?", (id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        raise ValueError("Produk tidak ditemukan")
+
+    current_qty = row["quantity"]
+    if current_qty < amount:
+        conn.close()
+        raise ValueError("Stok tidak mencukupi")
+
+    # Kurangi stok
+    new_qty = current_qty - amount
+    c.execute("UPDATE products SET quantity = ? WHERE id = ?", (new_qty, id))
+    conn.commit()
+
+    # Ambil data terbaru
+    c.execute("SELECT * FROM products WHERE id = ?", (id,))
+    updated = c.fetchone()
+    conn.close()
+    return dict(updated)
+
 @mutation.field("addRawMaterial")
 def resolve_add_raw_material(_, info, vendor_transaction_id=None, livestock_type="", quantity=0):
     # Validate livestock_type
