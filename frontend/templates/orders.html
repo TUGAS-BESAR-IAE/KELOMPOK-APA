@@ -3,32 +3,42 @@
 {% block title %}Order Management{% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Add Order Form -->
-    <div class="add-order-form card shadow-sm mb-4">
-        <div class="card-body">
-            <h3 class="card-title mb-4">Add New Order</h3>
+<div class="container-fluid px-4 py-4">
+    <!-- Order Form -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                    <i class="fas fa-shopping-cart text-primary fa-2x"></i>
+                </div>
+                <h3 class="mb-0 fw-bold">Create New Order</h3>
+            </div>
             <form id="orderForm">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="customer" class="form-label">Customer</label>
-                        <select class="form-control" id="customer" name="customer" required>
+                <!-- Customer Selection -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="customer" class="form-label text-secondary">Customer</label>
+                        <select class="form-select form-select-lg rounded-3" id="customer" required>
                             <option value="">Select Customer</option>
                         </select>
                     </div>
                 </div>
 
-                <div id="orderItems">
-                    <!-- Order items will be appended here -->
-                </div>
+                <!-- Order Items -->
+                <div id="orderItems" class="mb-4"></div>
 
-                <div class="mb-3">
-                    <button type="button" class="btn btn-secondary" id="addItem">Add Item</button>
-                </div>
+                <button type="button" class="btn btn-outline-primary rounded-3 mb-4" id="addItem">
+                    <i class="fas fa-plus me-2"></i>Add Item
+                </button>
 
-                <div class="text-end">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Submit Order
+                <!-- Submit Button -->
+                <div class="d-flex justify-content-between align-items-center bg-light rounded-4 p-4">
+                    <div>
+                        <h5 class="mb-1 text-secondary">Total Amount</h5>
+                        <h3 class="mb-0 fw-bold text-primary" id="orderTotal">Rp0</h3>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg px-4 rounded-3">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Order
                     </button>
                 </div>
             </form>
@@ -36,22 +46,26 @@
     </div>
 
     <!-- Orders Table -->
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h3 class="card-title mb-4">Order List</h3>
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="rounded-circle bg-info bg-opacity-10 p-3">
+                    <i class="fas fa-list text-info fa-2x"></i>
+                </div>
+                <h3 class="mb-0 fw-bold">Order List</h3>
+            </div>
             <div class="table-responsive">
-                <table class="table table-hover">
-  <thead class="table-light">
-    <tr>
-      <th>Order ID</th>
-      <th>Customer</th>
-      <th>Date</th>
-      <th>Total</th>
-    </tr>
-  </thead>
-  <tbody id="ordersTableBody"></tbody>
-</table>
-
+                <table class="table table-hover align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="px-4 py-3 text-secondary">Order ID</th>
+                            <th class="px-4 py-3 text-secondary">Customer</th>
+                            <th class="px-4 py-3 text-secondary">Date</th>
+                            <th class="px-4 py-3 text-secondary text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody"></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -61,6 +75,7 @@
 {% block extra_js %}
 <script>
     let userMap = {};
+    let productMap = {};
 
     async function loadUsers() {
         const response = await fetch("http://localhost:8001/graphql", {
@@ -70,49 +85,94 @@
         });
         const result = await response.json();
         const select = document.getElementById("customer");
-        select.innerHTML = '<option value="">Select Customer</option>';
         result.data.users.forEach(user => {
             userMap[user.id] = user.name;
             select.innerHTML += `<option value="${user.id}">${user.name}</option>`;
         });
     }
 
-    function createOrderItemRow() {
+    async function loadProducts() {
+        const response = await fetch("http://localhost:8003/graphql", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: `query { products { id name } }` })
+        });
+        const result = await response.json();
+        result.data.products.forEach(p => {
+            productMap[p.id] = p.name;
+        });
+    }
+
+    function addOrderItemRow() {
         const div = document.createElement("div");
         div.className = "row mb-3 order-item";
+        const options = Object.entries(productMap).map(([id, name]) =>
+            `<option value="${id}">${name}</option>`
+        ).join("");
+
         div.innerHTML = `
             <div class="col-md-4">
-                <input type="number" class="form-control product-id" placeholder="Product ID" required>
+                <select class="form-select form-select-lg rounded-3 product-id" required>
+                    <option value="">Select Product</option>
+                    ${options}
+                </select>
             </div>
             <div class="col-md-3">
-                <input type="number" class="form-control quantity" placeholder="Quantity" required>
+                <input type="number" class="form-control form-control-lg rounded-3 quantity" placeholder="Quantity" required>
             </div>
             <div class="col-md-3">
-                <input type="number" class="form-control price" placeholder="Price" required>
+                <input type="number" class="form-control form-control-lg rounded-3 price" placeholder="Price" required>
             </div>
-            <div class="col-md-2">
-                <button type="button" class="btn btn-danger remove-item">Remove</button>
+            <div class="col-md-2 d-flex align-items-center">
+                <button type="button" class="btn btn-outline-danger rounded-3 remove-item">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </div>
         `;
         document.getElementById("orderItems").appendChild(div);
     }
 
-    document.getElementById("addItem").addEventListener("click", createOrderItemRow);
+    function calculateTotal() {
+        const rows = document.querySelectorAll(".order-item");
+        let total = 0;
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector(".quantity").value) || 0;
+            const price = parseFloat(row.querySelector(".price").value) || 0;
+            total += qty * price;
+        });
+        document.getElementById("orderTotal").innerText =
+            `Rp${total.toLocaleString("id-ID")}`;
+    }
 
-    document.addEventListener("click", function(e) {
-        if (e.target.classList.contains("remove-item")) {
-            e.target.closest(".order-item").remove();
+    document.getElementById("addItem").addEventListener("click", () => {
+        addOrderItemRow();
+    });
+
+    document.addEventListener("input", function (e) {
+        if (e.target.classList.contains("quantity") || e.target.classList.contains("price")) {
+            calculateTotal();
         }
     });
 
-    document.getElementById("orderForm").addEventListener("submit", async function(e) {
+    document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("remove-item") || e.target.closest(".remove-item")) {
+            const button = e.target.classList.contains("remove-item") ? e.target : e.target.closest(".remove-item");
+            button.closest(".order-item").remove();
+            calculateTotal();
+        }
+    });
+
+    document.getElementById("orderForm").addEventListener("submit", async function (e) {
         e.preventDefault();
-        const userId = document.getElementById("customer").value;
+
+        const userId = parseInt(document.getElementById("customer").value);
         const items = Array.from(document.querySelectorAll(".order-item")).map(row => ({
             product_id: parseInt(row.querySelector(".product-id").value),
             quantity: parseInt(row.querySelector(".quantity").value),
             price: parseFloat(row.querySelector(".price").value)
         }));
+
+        if (!userId || items.length === 0) return;
 
         const mutation = `
             mutation CreateOrder($user_id: Int!, $items: [OrderInput!]!) {
@@ -126,12 +186,16 @@
         await fetch("http://localhost:8004/graphql", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: mutation, variables: { user_id: parseInt(userId), items } })
+            body: JSON.stringify({
+                query: mutation,
+                variables: { user_id: userId, items }
+            })
         });
 
         this.reset();
         document.getElementById("orderItems").innerHTML = "";
-        createOrderItemRow();
+        document.getElementById("orderTotal").innerText = "Rp0";
+        addOrderItemRow();
         loadOrders();
     });
 
@@ -149,19 +213,42 @@
             const customerName = userMap[order.user_id] || 'Unknown';
             const tr = document.createElement("tr");
             tr.innerHTML = `
-                <td>${order.id}</td>
-                <td>${customerName}</td>
-                <td>${new Date(order.order_date).toLocaleDateString()}</td>
-                <td>${order.total_amount.toFixed(2)}</td>
+                <td class="px-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-hashtag text-primary"></i>
+                        <span class="fw-medium">${order.id}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-user text-primary"></i>
+                        <span>${customerName}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-calendar text-primary"></i>
+                        <span>${new Date(order.order_date).toLocaleDateString()}</span>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-end">
+                    <span class="fw-bold">${new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: 'IDR'
+                    }).format(order.total_amount)}</span>
+                </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
+    // Load data on start
     loadUsers().then(() => {
         loadOrders();
     });
-    createOrderItemRow();
-</script>
 
+    loadProducts().then(() => {
+        addOrderItemRow();
+    });
+</script>
 {% endblock %}

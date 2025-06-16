@@ -22,7 +22,7 @@ app.add_middleware(
 )
 
 # Mount GraphQL at root
-app.mount("/", graphql_app)
+app.mount("/graphql", graphql_app)
 
 @app.on_event("startup")
 async def startup_event():

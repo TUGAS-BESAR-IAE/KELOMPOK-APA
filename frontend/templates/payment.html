@@ -2,45 +2,41 @@
 {% block title %}Payment Management{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="container-fluid px-4 py-4">
   <!-- Add Payment Form -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <h3 class="card-title mb-4">Add New Payment</h3>
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+          <i class="fas fa-money-bill-wave text-primary fa-2x"></i>
+        </div>
+        <h3 class="mb-0 fw-bold">Add New Payment</h3>
+      </div>
       <form id="addPaymentForm" onsubmit="return handleAddPayment(event)">
-        <div class="row">
-          <div class="col-md-4 mb-3">
-            <label for="order_id" class="form-label">Order ID</label>
-            <input type="number" class="form-control" id="order_id" required>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label for="orderSelect" class="form-label text-secondary">Select Order</label>
+            <select class="form-select form-select-lg rounded-3" id="orderSelect" required>
+              <option value="">-- Choose Order --</option>
+            </select>
           </div>
-          <div class="col-md-4 mb-3">
-            <label for="payment_method" class="form-label">Payment Method</label>
-            <select class="form-select" id="payment_method" required>
+          <div class="col-md-6">
+            <label for="totalAmount" class="form-label text-secondary">Total to Pay</label>
+            <input type="text" class="form-control form-control-lg rounded-3" id="totalAmount" disabled>
+          </div>
+          <div class="col-md-6">
+            <label for="paymentMethod" class="form-label text-secondary">Payment Method</label>
+            <select class="form-select form-select-lg rounded-3" id="paymentMethod" required>
               <option value="Cash">Cash</option>
               <option value="Credit Cards">Credit Cards</option>
               <option value="Debit Cards">Debit Cards</option>
               <option value="Bank Transfers">Bank Transfers</option>
             </select>
           </div>
-          <div class="col-md-4 mb-3">
-            <label for="amount" class="form-label">Amount</label>
-            <input type="number" class="form-control" id="amount" required>
-          </div>
         </div>
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="payment_status" class="form-label">Status</label>
-            <select class="form-select" id="payment_status" required>
-              <option value="pending">Pending</option>
-              <option value="paid">Paid</option>
-              <option value="failed">Failed</option>
-              <option value="expired">Expired</option>
-            </select>
-          </div>
-        </div>
-        <div class="text-end">
-          <button type="submit" class="btn btn-success">
-            <i class="fas fa-plus me-2"></i>Add Payment
+        <div class="text-end mt-4">
+          <button type="submit" class="btn btn-primary btn-lg px-4 rounded-3">
+            <i class="fas fa-check-circle me-2"></i>Submit Payment
           </button>
         </div>
       </form>
@@ -48,19 +44,25 @@
   </div>
 
   <!-- Payments Table -->
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h3 class="card-title mb-4">Payment List</h3>
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-circle bg-info bg-opacity-10 p-3">
+          <i class="fas fa-history text-info fa-2x"></i>
+        </div>
+        <h3 class="mb-0 fw-bold">Payment History</h3>
+      </div>
       <div class="table-responsive">
-        <table class="table table-hover">
-          <thead class="table-light">
+        <table class="table table-hover align-middle">
+          <thead class="bg-light">
             <tr>
-              <th>Order ID</th>
-              <th>Method</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Transaction ID</th>
-              <th>Date</th>
+              <th class="px-4 py-3 text-secondary">Order</th>
+              <th class="px-4 py-3 text-secondary">Customer</th>
+              <th class="px-4 py-3 text-secondary">Method</th>
+              <th class="px-4 py-3 text-secondary">Amount</th>
+              <th class="px-4 py-3 text-secondary">Status</th>
+              <th class="px-4 py-3 text-secondary">Transaction ID</th>
+              <th class="px-4 py-3 text-secondary">Date</th>
             </tr>
           </thead>
           <tbody id="paymentsTableBody"></tbody>
@@ -73,69 +75,164 @@
 
 {% block extra_js %}
 <script>
-if (!document.cookie.includes('is_logged_in=true')) {
-  window.location.href = '/login.html';
-}
+let orders = [];
+let users = {};
 
 function formatRupiah(value) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(value);
 }
 
+async function loadUsers() {
+  const query = `query { users { id name } }`;
+  const res = await fetch("http://localhost:8001/graphql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query })
+  });
+  const result = await res.json();
+  result.data.users.forEach(u => users[u.id] = u.name);
+}
+
+async function loadOrders() {
+  const query = `query { orders { id user_id total_amount } }`;
+  const res = await fetch("http://localhost:8004/graphql", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query })
+  });
+  const result = await res.json();
+  orders = result.data.orders;
+
+  const select = document.getElementById("orderSelect");
+  select.innerHTML = `<option value="">-- Choose Order --</option>`;
+  orders.forEach(o => {
+    const customer = users[String(o.user_id)] || 'Unknown';
+    select.innerHTML += `<option value="${o.id}" data-amount="${o.total_amount}">#${o.id} - ${customer}</option>`;
+  });
+}
+
+document.getElementById("orderSelect").addEventListener("change", function() {
+  const selected = this.options[this.selectedIndex];
+  const amount = selected.getAttribute("data-amount");
+  document.getElementById("totalAmount").value = amount ? formatRupiah(amount) : '';
+});
+
 async function handleAddPayment(event) {
   event.preventDefault();
-  const order_id = parseInt(document.getElementById('order_id').value);
-  const payment_method = document.getElementById('payment_method').value;
-  const amount = parseFloat(document.getElementById('amount').value);
-  const payment_status = document.getElementById('payment_status').value;
+
+  const order_id = parseInt(document.getElementById("orderSelect").value);
+  const payment_method = document.getElementById("paymentMethod").value;
+  const order = orders.find(o => o.id == order_id);
+  if (!order) {
+    alert("Order tidak ditemukan");
+    return;
+  }
 
   const mutation = `
     mutation {
-      addPayment(order_id: ${order_id}, payment_method: "${payment_method}", amount: ${amount},
-                 payment_status: "${payment_status}", transaction_id: "AUTO") {
+      addPayment(order_id: ${order_id}, payment_method: "${payment_method}", amount: ${order.total_amount},
+                 payment_status: "paid") {
         id order_id payment_method amount payment_status transaction_id payment_date
       }
     }
   `;
 
-  await fetch("http://localhost:8006/graphql", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: mutation })
-  });
+  try {
+    const response = await fetch("http://localhost:8006/graphql", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: mutation })
+    });
 
-  event.target.reset();
-  loadPayments();
+    const result = await response.json();
+    console.log("Payment result:", result);
+
+    if (result.errors) {
+      alert("Gagal menyimpan pembayaran: " + result.errors[0].message);
+      return;
+    }
+
+    document.getElementById("addPaymentForm").reset();
+    document.getElementById("totalAmount").value = '';
+    await loadPayments();
+  } catch (err) {
+    alert("Gagal submit payment!");
+    console.error(err);
+  }
 }
 
 async function loadPayments() {
-  const query = `query { payments {
-    order_id payment_method amount payment_status transaction_id payment_date
-  }}`;
-
+  const query = `query { payments { order_id payment_method amount payment_status transaction_id payment_date } }`;
   const res = await fetch("http://localhost:8006/graphql", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query })
   });
-
   const result = await res.json();
-  const tbody = document.getElementById('paymentsTableBody');
-  tbody.innerHTML = "";
 
+  const tbody = document.getElementById("paymentsTableBody");
+  tbody.innerHTML = "";
   result.data.payments.forEach(p => {
+    const order = orders.find(o => o.id == p.order_id);
+    const customer = order ? users[String(order.user_id)] : "Unknown";
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${p.order_id}</td>
-      <td>${p.payment_method}</td>
-      <td>${formatRupiah(p.amount)}</td>
-      <td>${p.payment_status}</td>
-      <td>${p.transaction_id}</td>
-      <td>${p.payment_date}</td>
+      <td class="px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-shopping-cart text-primary"></i>
+          <span class="fw-medium">#${p.order_id}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-user text-primary"></i>
+          <span>${customer}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-credit-card text-primary"></i>
+          <span>${p.payment_method}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-money-bill-wave text-primary"></i>
+          <span>${formatRupiah(p.amount)}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <span class="badge bg-success rounded-pill">${p.payment_status}</span>
+      </td>
+      <td class="px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-hashtag text-primary"></i>
+          <span>${p.transaction_id}</span>
+        </div>
+      </td>
+      <td class="px-4 py-3">
+        <div class="d-flex align-items-center gap-2">
+          <i class="fas fa-calendar text-primary"></i>
+          <span>${new Date(p.payment_date).toLocaleString("id-ID")}</span>
+        </div>
+      </td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-loadPayments();
+// Bind function ke global supaya onsubmit bisa akses
+window.handleAddPayment = handleAddPayment;
+
+// Init
+(async () => {
+  if (!document.cookie.includes('is_logged_in=true')) {
+    window.location.href = '/login.html';
+    return;
+  }
+  await loadUsers();
+  await loadOrders();
+  await loadPayments();
+})();
 </script>
 {% endblock %}
