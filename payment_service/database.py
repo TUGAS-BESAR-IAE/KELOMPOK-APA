@@ -16,7 +16,7 @@ def init_db():
             order_id INTEGER NOT NULL,
             payment_method TEXT,
             amount REAL,
-            payment_status TEXT CHECK(payment_status IN ('pending', 'paid', 'failed', 'expired')),
+            payment_status TEXT ,
             transaction_id TEXT,
             payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );

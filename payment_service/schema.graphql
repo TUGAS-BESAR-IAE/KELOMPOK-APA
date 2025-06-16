@@ -6,6 +6,7 @@ type Payment {
     payment_status: String
     transaction_id: String
     payment_date: String
+    customer_name: String 
 }
 
 type Query {

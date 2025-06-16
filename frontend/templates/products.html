@@ -3,52 +3,66 @@
 {% block title %}Product Management{% endblock %}
 
 {% block content %}
-<div class="container mt">
-  <h2 class="mb-4">Manage Products</h2>
+<div class="container-fluid px-4 py-4">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+      <i class="fas fa-box text-primary fa-2x"></i>
+    </div>
+    <h2 class="mb-0 fw-bold">Product Management</h2>
+  </div>
 
   <!-- Raw Materials Table -->
-  <div class="card shadow mb-4">
-    <div class="card-header bg-secondary text-white">
-      <h4 class="mb-0">Raw Materials</h4>
-    </div>
-    <div class="card-body">
-      <table class="table table-striped">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>Livestock Type</th>
-            <th>Quantity</th>
-            <th>Received At</th>
-          </tr>
-        </thead>
-        <tbody id="rawMaterialList"></tbody>
-      </table>
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-circle bg-secondary bg-opacity-10 p-3">
+          <i class="fas fa-cubes text-secondary fa-2x"></i>
+        </div>
+        <h4 class="mb-0 fw-bold">Raw Materials</h4>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="bg-light">
+            <tr>
+              <th class="px-4 py-3 text-secondary">#</th>
+              <th class="px-4 py-3 text-secondary">Livestock Type</th>
+              <th class="px-4 py-3 text-secondary">Quantity</th>
+              <th class="px-4 py-3 text-secondary">Received At</th>
+              <th class="px-4 py-3 text-secondary text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rawMaterialList"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- Add Product Form -->
-  <div class="card shadow mb-4">
-    <div class="card-header bg-primary text-white">
-      <h4 class="mb-0">Add Product</h4>
-    </div>
-    <div class="card-body">
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+          <i class="fas fa-plus text-primary fa-2x"></i>
+        </div>
+        <h4 class="mb-0 fw-bold">Add Product</h4>
+      </div>
       <form id="addProductForm" class="row g-3">
         <div class="col-md-4">
-          <select id="rawMaterialId" class="form-select" required>
+          <select id="rawMaterialId" class="form-select form-select-lg rounded-3" required>
             <option value="">Select Raw Material</option>
           </select>
         </div>
         <div class="col-md-3">
-          <input type="text" class="form-control" id="productName" placeholder="Product Name" required />
+          <input type="text" class="form-control form-control-lg rounded-3" id="productName" placeholder="Product Name" required />
         </div>
         <div class="col-md-2">
-          <input type="text" class="form-control" id="productUnit" placeholder="Unit (e.g. pack)" />
+          <input type="text" class="form-control form-control-lg rounded-3" id="productUnit" placeholder="Unit (e.g. pack)" />
         </div>
         <div class="col-md-2">
-          <input type="number" class="form-control" id="productQty" placeholder="Qty" required />
+          <input type="number" class="form-control form-control-lg rounded-3" id="productQty" placeholder="Qty" required />
         </div>
         <div class="col-md-1">
-          <button type="submit" class="btn btn-success w-100">
+          <button type="submit" class="btn btn-success btn-lg w-100 rounded-3">
             <i class="fas fa-plus"></i>
           </button>
         </div>
@@ -57,23 +71,27 @@
   </div>
 
   <!-- Product List Table -->
-  <div class="card shadow">
-    <div class="card-header bg-info text-white">
-      <h4 class="mb-0">Products</h4>
-    </div>
-    <div class="card-body">
-      <table class="table table-hover">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>Product</th>
-            <th>Unit</th>
-            <th>Quantity</th>
-            <!-- <th>Created</th> -->
-          </tr>
-        </thead>
-        <tbody id="productList"></tbody>
-      </table>
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-circle bg-info bg-opacity-10 p-3">
+          <i class="fas fa-list text-info fa-2x"></i>
+        </div>
+        <h4 class="mb-0 fw-bold">Products</h4>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="bg-light">
+            <tr>
+              <th class="px-4 py-3 text-secondary">#</th>
+              <th class="px-4 py-3 text-secondary">Product</th>
+              <th class="px-4 py-3 text-secondary">Unit</th>
+              <th class="px-4 py-3 text-secondary">Quantity</th>
+            </tr>
+          </thead>
+          <tbody id="productList"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -81,7 +99,7 @@
 
 {% block extra_js %}
 <script>
-  const API_URL = "http://localhost:8003/graphql"; // Update with your actual API URL
+  const API_URL = "http://localhost:8003/graphql";
 
   async function fetchGraphQL(query, variables = {}) {
     const res = await fetch(API_URL, {
@@ -102,20 +120,39 @@
     data.data.rawMaterials.forEach((m, i) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${m.livestock_type}</td>
-        <td>${m.quantity}</td>
-        <td>${m.received_at}</td>
-        <td>
-          <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-outline-warning" onclick="decreaseStock(${m.id})" title="Decrease Stock">
+        <td class="px-4 py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-hashtag text-primary"></i>
+            <span class="fw-medium">${i + 1}</span>
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-cube text-primary"></i>
+            <span class="text-capitalize">${m.livestock_type}</span>
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+            ${m.quantity} units
+          </span>
+        </td>
+        <td class="px-4 py-3 text-secondary">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-calendar"></i>
+            <span>${new Date(m.received_at).toLocaleDateString()}</span>
+          </div>
+        </td>
+        <td class="px-4 py-3 text-end">
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-warning rounded-3 me-2" onclick="decreaseStock(${m.id})" title="Decrease Stock">
               <i class="fas fa-minus-circle"></i>
             </button>
-          <button class="btn btn-sm btn-outline-danger" onclick="deleteRaw(${m.id})" title="Delete">
+            <button class="btn btn-outline-danger rounded-3" onclick="deleteRaw(${m.id})" title="Delete">
               <i class="fas fa-trash-alt"></i>
             </button>
           </div>
-         </td>
+        </td>
       `;
       list.appendChild(tr);
 
@@ -127,38 +164,37 @@
   }
 
   async function decreaseStock(id) {
-  const amount = 1; // atau bisa dibuat input prompt
-  const mutation = `
-    mutation($id: Int!, $amount: Int!) {
-      decreaseRawMaterial(id: $id, amount: $amount) {
-        id
+    const amount = 1;
+    const mutation = `
+      mutation($id: Int!, $amount: Int!) {
+        decreaseRawMaterial(id: $id, amount: $amount) {
+          id
+        }
       }
+    `;
+    const res = await fetchGraphQL(mutation, { id, amount });
+    if (res.errors) {
+      alert("Gagal kurangi stok: " + res.errors[0].message);
+    } else {
+      loadRawMaterials();
     }
-  `;
-  const res = await fetchGraphQL(mutation, { id, amount });
-  if (res.errors) {
-    alert("Gagal kurangi stok: " + res.errors[0].message);
-  } else {
-    loadRawMaterials();
   }
-}
 
-async function deleteRaw(id) {
-  if (!confirm("Yakin ingin menghapus raw material ini?")) return;
+  async function deleteRaw(id) {
+    if (!confirm("Yakin ingin menghapus raw material ini?")) return;
 
-  const mutation = `
-    mutation($id: Int!) {
-      deleteRawMaterial(id: $id)
+    const mutation = `
+      mutation($id: Int!) {
+        deleteRawMaterial(id: $id)
+      }
+    `;
+    const res = await fetchGraphQL(mutation, { id });
+    if (res.errors) {
+      alert("Gagal menghapus: " + res.errors[0].message);
+    } else {
+      loadRawMaterials();
     }
-  `;
-  const res = await fetchGraphQL(mutation, { id });
-  if (res.errors) {
-    alert("Gagal menghapus: " + res.errors[0].message);
-  } else {
-    loadRawMaterials();
   }
-}
-
 
   async function loadProducts() {
     const query = `
@@ -178,11 +214,28 @@ async function deleteRaw(id) {
     data.data.products.forEach((p, i) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${p.name}</td>
-        <td>${p.unit || '-'}</td>
-        <td>${p.quantity}</td>
-        
+        <td class="px-4 py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-hashtag text-primary"></i>
+            <span class="fw-medium">${i + 1}</span>
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-box text-primary"></i>
+            <span>${p.name}</span>
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">
+            ${p.unit || '-'}
+          </span>
+        </td>
+        <td class="px-4 py-3">
+          <span class="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill">
+            ${p.quantity} units
+          </span>
+        </td>
       `;
       list.appendChild(tr);
     });
